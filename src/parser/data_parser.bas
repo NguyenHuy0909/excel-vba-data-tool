@@ -14,6 +14,7 @@ Public Sub ImportGidData(ByVal filePath As String, ByVal wsData As Worksheet, By
     Dim lineText As String
     Dim lineIndex As Long
     Dim dataStartLine As Long
+    Dim importedRows As Long
 
     DebugLog "Start ImportGidData"
     SetCurrentFileContext filePath
@@ -32,10 +33,12 @@ Public Sub ImportGidData(ByVal filePath As String, ByVal wsData As Worksheet, By
         ElseIf lineIndex >= dataStartLine Then
             WriteFixedWidthValuesToRow wsData, rowHeader, startColumn, lineText
             rowHeader = rowHeader + 1
+            importedRows = importedRows + 1
         End If
     Loop
 
     textStream.Close
+    DebugLog "Imported data rows: " & CStr(importedRows)
     DebugLog "End ImportGidData"
     Exit Sub
 
@@ -50,6 +53,7 @@ Private Sub WriteFixedWidthValuesToRow(ByVal wsData As Worksheet, ByVal rowIndex
 
     Dim targetColumn As Long
     Dim fieldWidth As Long
+    Dim valueCount As Long
 
     targetColumn = startColumn
     fieldWidth = GetConfigLong("DATA_FIELD_WIDTH")
@@ -58,7 +62,12 @@ Private Sub WriteFixedWidthValuesToRow(ByVal wsData As Worksheet, ByVal rowIndex
         wsData.Cells(rowIndex, targetColumn).Value = Left$(lineText, fieldWidth)
         lineText = Mid$(lineText, fieldWidth + 1)
         targetColumn = targetColumn + 1
+        valueCount = valueCount + 1
     Loop
+
+    If rowIndex = GetConfigLong("HEADER_ROW") + 2 Then
+        DebugLog "First data row field count: " & CStr(valueCount)
+    End If
     Exit Sub
 
 ERR_HANDLER:

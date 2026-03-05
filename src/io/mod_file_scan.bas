@@ -40,6 +40,7 @@ Public Sub FindTemplateFolders()
     outputRow = firstRow
     For Each folderFile In sourceFolder.Files
         If LCase$(fileSystem.GetExtensionName(folderFile.Name)) = LCase$(CStr(GetConfig("EX_EXTENSION"))) Then
+            DebugLog "Found template file: " & folderFile.Name
             wsTool.Cells(outputRow, idxCol).Value = outputRow - (firstRow - 1)
             wsTool.Cells(outputRow, nameCol).Value = folderFile.Name
             wsTool.Cells(outputRow, pathCol).Value = folderFile.Path
@@ -93,6 +94,7 @@ Public Sub FindCaseSets()
         If InStr(1, subFolder.Name, CStr(GetConfig("RPM_FOLDER_PATTERN")), vbTextCompare) > 0 Then
             DebugLog "Scanning RPM folder: " & subFolder.Name
             If InStr(1, subFolder.Name, caseSetKeyword, vbTextCompare) > 0 Then
+                DebugLog "Matched case-set folder: " & subFolder.Name
                 wsTool.Cells(outputRow, idxCol).Value = outputRow - (firstRow - 1)
                 wsTool.Cells(outputRow, nameCol).Value = subFolder.Name
                 wsTool.Cells(outputRow, pathCol).Value = subFolder.Path & "\" & CStr(GetConfig("RESULT_FOLDER"))

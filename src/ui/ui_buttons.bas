@@ -127,6 +127,16 @@ ERR_HANDLER:
     ErrorHandler "ClearDataSheet(UI)"
 End Sub
 
+
+Public Sub ResetDebugTracking()
+    On Error GoTo ERR_HANDLER
+    ResetDebugLog
+    MsgBox "Debug logs have been reset (sheet DEBUG_LOG + tool_debug_log.txt).", vbInformation
+    Exit Sub
+ERR_HANDLER:
+    ErrorHandler "ResetDebugTracking"
+End Sub
+
 ' Backward-compatible entry points
 Public Sub Browser()
     BrowseFolder
@@ -177,9 +187,11 @@ Private Function WriteMatchedGidFilesFromCaseSet(ByVal wsTool As Worksheet, ByVa
     WriteMatchedGidFilesFromCaseSet = startRow
 
     For Each folderFile In resultFolder.Files
+        DebugLog "Inspect file in results: " & folderFile.Name
         If InStr(1, folderFile.Name, CStr(GetConfig("GID_FILE_MARKER")), vbTextCompare) > 0 Then
             If LCase$(fileSystem.GetExtensionName(folderFile.Name)) = LCase$(CStr(GetConfig("GID_EXTENSION"))) Then
                 If IsGidFileMatchingNodeAndDof(folderFile.Name, nodeIdList, dofList) Then
+                    DebugLog "Matched GID file for Node/DOF: " & folderFile.Name
                     wsTool.Cells(WriteMatchedGidFilesFromCaseSet, GetConfigLong("TOOL_GID_INDEX_COL")).Value = WriteMatchedGidFilesFromCaseSet - (GetConfigLong("TOOL_FIRST_ROW") - 1)
                     wsTool.Cells(WriteMatchedGidFilesFromCaseSet, GetConfigLong("TOOL_GID_NAME_COL")).Value = folderFile.Name
                     wsTool.Cells(WriteMatchedGidFilesFromCaseSet, GetConfigLong("TOOL_GID_PATH_WRITE_COL")).Value = folderFile.Path

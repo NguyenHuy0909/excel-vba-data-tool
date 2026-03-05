@@ -27,10 +27,10 @@ Public Sub ReadHeaderBuffers(ByVal filePath As String, ByRef headerBuffers() As 
 
         If InStr(1, currentLine, "CHANNEL", vbBinaryCompare) > 0 Then
             headerBuffers(1) = GetCombinedHeaderLineFromStream(currentLine, textStream)
-            DebugLog "Read CHANNEL header"
+            DebugLog "Read CHANNEL header: " & Left$(headerBuffers(1), 120)
         ElseIf InStr(1, currentLine, "UNIT", vbBinaryCompare) > 0 Then
             headerBuffers(2) = GetCombinedHeaderLineFromStream(currentLine, textStream)
-            DebugLog "Read UNIT header"
+            DebugLog "Read UNIT header: " & Left$(headerBuffers(2), 120)
         End If
     Loop
 
