@@ -19,8 +19,6 @@ Option Explicit
 ' GID Excel Tool
 '=========================================
 
-Private Const DATA_FIELD_WIDTH As Long = 16
-
 Public Sub ImportGidData(ByVal filePath As String, ByVal wsData As Worksheet, ByVal startColumn As Long, ByRef rowHeader As Long)
     Dim textStream As Object
     Dim lineText As String
@@ -52,8 +50,8 @@ Private Sub WriteFixedWidthValuesToRow(ByVal wsData As Worksheet, ByVal rowIndex
     targetColumn = startColumn
 
     Do While Len(lineText) > 0
-        wsData.Cells(rowIndex, targetColumn).Value = Left$(lineText, DATA_FIELD_WIDTH)
-        lineText = Mid$(lineText, DATA_FIELD_WIDTH + 1)
+        wsData.Cells(rowIndex, targetColumn).Value = Left$(lineText, GetConfigLong("DATA_FIELD_WIDTH"))
+        lineText = Mid$(lineText, GetConfigLong("DATA_FIELD_WIDTH") + 1)
         targetColumn = targetColumn + 1
     Loop
 End Sub

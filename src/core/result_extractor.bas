@@ -3,27 +3,12 @@ Option Explicit
 
 '=========================================
 ' MODULE: result_extractor
-'
-' PURPOSE
-' Extract and organize requested response results.
-'
-' MAIN RESPONSIBILITIES
-' - Resolve selected output list
-' - Filter result columns
-' - Remove duplicate first output column
-' - Build title rows (Model/RPM/Node ID/Dof)
-'
-' DEPENDENCIES
-' - helpers module
-'
-' PROJECT NAME
-' GID Excel Tool
+' PURPOSE: Extract and organize requested response results.
+' PROJECT: GID Excel Tool
 '=========================================
 
-Private Const DATA_HEADER_ROW As Long = 6
-
 Public Function GetSelectedOutputsFromToolSheet(ByVal wsTool As Worksheet) As Variant
-    GetSelectedOutputsFromToolSheet = GetValuesFromRow(wsTool, 1, 31, 35)
+    GetSelectedOutputsFromToolSheet = GetValuesFromRange(wsTool, CStr(GetConfig("TOOL_OUTPUT_RANGE")))
 End Function
 
 Public Sub FilterResultColumns(ByVal wsData As Worksheet, ByVal wsTool As Worksheet)
@@ -31,7 +16,9 @@ Public Sub FilterResultColumns(ByVal wsData As Worksheet, ByVal wsTool As Worksh
     Dim keepColumns As Variant
     Dim lastColumn As Long
     Dim currentColumn As Long
+    Dim headerRow As Long
 
+    headerRow = GetConfigLong("HEADER_ROW")
     selectedOutputs = GetSelectedOutputsFromToolSheet(wsTool)
 
     If Not HasArrayItems(selectedOutputs) Then
@@ -39,15 +26,13 @@ Public Sub FilterResultColumns(ByVal wsData As Worksheet, ByVal wsTool As Worksh
         Exit Sub
     End If
 
-    keepColumns = FindColumnsByText(wsData, DATA_HEADER_ROW, selectedOutputs)
+    keepColumns = FindColumnsByText(wsData, headerRow, selectedOutputs)
     If Not HasArrayItems(keepColumns) Then Exit Sub
 
-    lastColumn = wsData.Cells(DATA_HEADER_ROW, wsData.Columns.Count).End(xlToLeft).Column
+    lastColumn = wsData.Cells(headerRow, wsData.Columns.Count).End(xlToLeft).Column
 
     For currentColumn = lastColumn To 1 Step -1
-        If Not IsColumnInList(currentColumn, keepColumns) Then
-            wsData.Columns(currentColumn).Delete
-        End If
+        If Not IsColumnInList(currentColumn, keepColumns) Then wsData.Columns(currentColumn).Delete
     Next currentColumn
 End Sub
 
@@ -56,43 +41,35 @@ Public Sub RemoveDuplicateFirstOutputColumn(ByVal wsData As Worksheet, ByVal wsT
     Dim lastColumn As Long
     Dim currentColumn As Long
     Dim firstOutputName As String
+    Dim headerRow As Long
 
+    headerRow = GetConfigLong("HEADER_ROW")
     selectedOutputs = GetSelectedOutputsFromToolSheet(wsTool)
     If Not HasArrayItems(selectedOutputs) Then Exit Sub
 
     firstOutputName = CStr(selectedOutputs(LBound(selectedOutputs)))
-    lastColumn = wsData.Cells(DATA_HEADER_ROW, wsData.Columns.Count).End(xlToLeft).Column
+    lastColumn = wsData.Cells(headerRow, wsData.Columns.Count).End(xlToLeft).Column
 
     For currentColumn = lastColumn To 2 Step -1
-        If StrComp(CStr(wsData.Cells(DATA_HEADER_ROW, currentColumn).Value), firstOutputName, vbTextCompare) = 0 Then
+        If StrComp(CStr(wsData.Cells(headerRow, currentColumn).Value), firstOutputName, vbTextCompare) = 0 Then
             wsData.Columns(currentColumn).Delete
         End If
     Next currentColumn
 End Sub
 
 Public Sub AddResultTitles(ByVal wsData As Worksheet, ByVal wsTool As Worksheet, ByVal firstOutputColumn As Long)
-    Dim nodeIdItems As Variant
-    Dim dofItems As Variant
-    Dim caseSetItems As Variant
-    Dim outputItems As Variant
-    Dim folderPathParts As Variant
-    Dim modeNameParts As Variant
-    Dim resultFolderPath As String
-    Dim modeName As String
-    Dim rpmName As String
-    Dim caseItem As Variant
-    Dim nodeItem As Variant
-    Dim dofItem As Variant
+    Dim nodeIdItems As Variant, dofItems As Variant, caseSetItems As Variant, outputItems As Variant
+    Dim folderPathParts As Variant, modeNameParts As Variant
+    Dim resultFolderPath As String, modeName As String, rpmName As String
+    Dim caseItem As Variant, nodeItem As Variant, dofItem As Variant
     Dim casePathRow As Long
-    Dim outputCount As Long
-    Dim dofCount As Long
-    Dim outputColumn As Long
-    Dim nodeTitleColumn As Long
-    Dim modelTitleColumn As Long
+    Dim outputCount As Long, dofCount As Long
+    Dim outputColumn As Long, nodeTitleColumn As Long, modelTitleColumn As Long
+    Dim caseCol As String
 
-    caseSetItems = ParseInputTokens(CStr(wsTool.Range("X1").Value))
-    nodeIdItems = ParseInputTokens(CStr(wsTool.Range("X2").Value))
-    dofItems = ParseInputTokens(CStr(wsTool.Range("X3").Value))
+    caseSetItems = ParseInputTokens(CStr(wsTool.Range(CStr(GetConfig("TOOL_CASESET_INPUT"))).Value))
+    nodeIdItems = ParseInputTokens(CStr(wsTool.Range(CStr(GetConfig("TOOL_NODE_INPUT"))).Value))
+    dofItems = ParseInputTokens(CStr(wsTool.Range(CStr(GetConfig("TOOL_DOF_INPUT"))).Value))
     outputItems = GetSelectedOutputsFromToolSheet(wsTool)
 
     If Not HasArrayItems(caseSetItems) Or Not HasArrayItems(nodeIdItems) Or Not HasArrayItems(dofItems) Or Not HasArrayItems(outputItems) Then
@@ -102,6 +79,7 @@ Public Sub AddResultTitles(ByVal wsData As Worksheet, ByVal wsTool As Worksheet,
 
     outputCount = UBound(outputItems) - LBound(outputItems)
     dofCount = UBound(dofItems) - LBound(dofItems) + 1
+    caseCol = CStr(GetConfig("TOOL_CASESET_RANGE_COL"))
 
     wsData.Cells(2, 1).Value = "Model"
     wsData.Cells(3, 1).Value = "RPM"
@@ -113,8 +91,8 @@ Public Sub AddResultTitles(ByVal wsData As Worksheet, ByVal wsTool As Worksheet,
     modelTitleColumn = firstOutputColumn
 
     For Each caseItem In caseSetItems
-        casePathRow = CLng(caseItem) + 4
-        resultFolderPath = CStr(wsTool.Range("S" & casePathRow).Value)
+        casePathRow = CLng(caseItem) + (GetConfigLong("TOOL_FIRST_ROW") - 1)
+        resultFolderPath = CStr(wsTool.Range(caseCol & casePathRow).Value)
         folderPathParts = Split(resultFolderPath, "\")
 
         If UBound(folderPathParts) >= 1 Then
@@ -144,14 +122,3 @@ Public Sub AddResultTitles(ByVal wsData As Worksheet, ByVal wsTool As Worksheet,
         modelTitleColumn = outputColumn
     Next caseItem
 End Sub
-
-Private Function IsColumnInList(ByVal columnIndex As Long, ByVal keepColumns As Variant) As Boolean
-    Dim keepIndex As Long
-
-    For keepIndex = LBound(keepColumns) To UBound(keepColumns)
-        If columnIndex = CLng(keepColumns(keepIndex)) Then
-            IsColumnInList = True
-            Exit Function
-        End If
-    Next keepIndex
-End Function

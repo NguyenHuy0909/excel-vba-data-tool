@@ -1,31 +1,17 @@
-Attribute VB_Name = "helpers"
+Attribute VB_Name = "mod_utils"
 Option Explicit
 
 '=========================================
-' MODULE: helpers
-'
-' PURPOSE
-' Provide reusable utility helpers.
-'
-' MAIN RESPONSIBILITIES
-' - Parse token list from input text
-' - Validate arrays
-' - Read non-empty row values
-' - Find columns by header keywords
-'
-' DEPENDENCIES
-' - Excel object model
-'
-' PROJECT NAME
-' GID Excel Tool
+' MODULE: mod_utils
+' PURPOSE: Shared utility helpers.
+' PROJECT: GID Excel Tool
 '=========================================
 
 Public Function ParseInputTokens(ByVal rawValue As String) As Variant
     Dim normalizedValue As String
     Dim rawTokens() As String
     Dim resultTokens() As String
-    Dim sourceIndex As Long
-    Dim targetIndex As Long
+    Dim sourceIndex As Long, targetIndex As Long
 
     normalizedValue = Trim$(rawValue)
     normalizedValue = Replace(normalizedValue, ",", " ")
@@ -58,42 +44,37 @@ End Function
 
 Public Function HasArrayItems(ByVal values As Variant) As Boolean
     On Error GoTo EmptyArray
-
-    If IsArray(values) Then
-        HasArrayItems = (UBound(values) >= LBound(values))
-    End If
+    If IsArray(values) Then HasArrayItems = (UBound(values) >= LBound(values))
     Exit Function
-
 EmptyArray:
     HasArrayItems = False
 End Function
 
-Public Function GetValuesFromRow(ByVal ws As Worksheet, ByVal rowIndex As Long, ByVal colStart As Long, ByVal colEnd As Long) As Variant
-    Dim collectedValues() As Variant
-    Dim columnIndex As Long
-    Dim valueCount As Long
+Public Function GetValuesFromRange(ByVal ws As Worksheet, ByVal rangeAddress As String) As Variant
+    Dim rng As Range
+    Dim c As Range
+    Dim result() As Variant
+    Dim count As Long
 
-    For columnIndex = colStart To colEnd
-        If Not IsEmpty(ws.Cells(rowIndex, columnIndex).Value) Then
-            valueCount = valueCount + 1
-            ReDim Preserve collectedValues(1 To valueCount)
-            collectedValues(valueCount) = ws.Cells(rowIndex, columnIndex).Value
+    Set rng = ws.Range(rangeAddress)
+    For Each c In rng.Cells
+        If Not IsEmpty(c.Value) Then
+            count = count + 1
+            ReDim Preserve result(1 To count)
+            result(count) = c.Value
         End If
-    Next columnIndex
+    Next c
 
-    If valueCount > 0 Then
-        GetValuesFromRow = collectedValues
+    If count = 0 Then
+        GetValuesFromRange = Array()
     Else
-        GetValuesFromRow = Array()
+        GetValuesFromRange = result
     End If
 End Function
 
 Public Function FindColumnsByText(ByVal ws As Worksheet, ByVal headerRow As Long, ByVal keywords As Variant) As Variant
-    Dim lastColumn As Long
-    Dim columnIndex As Long
-    Dim keywordIndex As Long
-    Dim matchedColumns() As Long
-    Dim matchCount As Long
+    Dim lastColumn As Long, columnIndex As Long, keywordIndex As Long
+    Dim matchedColumns() As Long, matchCount As Long
 
     lastColumn = ws.Cells(headerRow, ws.Columns.Count).End(xlToLeft).Column
 
@@ -108,9 +89,27 @@ Public Function FindColumnsByText(ByVal ws As Worksheet, ByVal headerRow As Long
         Next keywordIndex
     Next columnIndex
 
-    If matchCount > 0 Then
-        FindColumnsByText = matchedColumns
-    Else
+    If matchCount = 0 Then
         FindColumnsByText = Array()
+    Else
+        FindColumnsByText = matchedColumns
     End If
+End Function
+
+Public Function GetWorksheetByConfig(ByVal configKey As String) As Worksheet
+    Set GetWorksheetByConfig = ThisWorkbook.Worksheets(CStr(GetConfig(configKey)))
+End Function
+
+Public Function GetConfigLong(ByVal keyName As String) As Long
+    GetConfigLong = CLng(GetConfig(keyName))
+End Function
+
+Public Function IsColumnInList(ByVal columnIndex As Long, ByVal keepColumns As Variant) As Boolean
+    Dim i As Long
+    For i = LBound(keepColumns) To UBound(keepColumns)
+        If columnIndex = CLng(keepColumns(i)) Then
+            IsColumnInList = True
+            Exit Function
+        End If
+    Next i
 End Function
