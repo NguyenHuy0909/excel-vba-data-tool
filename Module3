@@ -1,0 +1,227 @@
+Option Explicit
+
+Public folderPath As String
+Public ws_tool As Worksheet
+Public col_header As Long
+
+Sub initWSTool()
+
+    Set ws_tool = ThisWorkbook.Sheets("Tool")
+
+End Sub
+Sub Browser()
+
+    Dim fso As Object, folder As Object, file As Object
+    Dim row As Long, col As Long
+
+    Call initWSTool
+
+    ' --- Ask user to choose folder ---
+    With Application.FileDialog(msoFileDialogFolderPicker)
+
+        .Title = "Select Folder"
+
+        If .Show <> -1 Then Exit Sub
+
+        folderPath = .SelectedItems(1)
+
+    End With
+
+    ' --- Initialize ---
+    Set ws_tool = ActiveSheet
+
+    ws_tool.Range("C1").Value = "" & folderPath
+
+End Sub
+Sub find_ex()
+
+    Dim fso As Object, folder As Object, file As Object
+    Dim row As Long, col As Long
+
+    Call initWSTool
+
+    Application.ScreenUpdating = False
+
+    folderPath = Range("C1").Value
+
+    row = 5
+    col = 1
+
+    ' --- Initialize ---
+    Set ws_tool = ActiveSheet
+
+    ws_tool.Range(ws_tool.Cells(row, col), ws_tool.Cells(ws_tool.Rows.Count, col)).ClearContents
+    ws_tool.Range(ws_tool.Cells(row, col + 1), ws_tool.Cells(ws_tool.Rows.Count, col + 1)).ClearContents
+    ws_tool.Range(ws_tool.Cells(row, col + 8), ws_tool.Cells(ws_tool.Rows.Count, col + 8)).ClearContents
+
+    ' --- Create FileSystemObject ---
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    folderPath = ws_tool.Range("C1")
+
+    Set folder = fso.GetFolder(folderPath)
+
+    ' --- Loop through all files in the folder ---
+    For Each file In folder.Files
+
+        If LCase(fso.GetExtensionName(file.Name)) = "ex" Then
+
+            ws_tool.Cells(row, col).Value = row - 4
+            ws_tool.Cells(row, col + 1).Value = file.Name        ' file name only
+            ws_tool.Cells(row, col + 2).Value = file.Path        ' full path
+            ws_tool.Cells(row, col + 8).Value = Format(file.DateLastModified, "yyyy-mm-dd hh:nn:ss")
+
+            row = row + 1
+
+        End If
+
+    Next file
+
+    Application.ScreenUpdating = True
+
+End Sub
+Sub FindCaseSet()
+
+    Dim fso As Object, folder As Object, file As Object, mainFolder As Object, subFolder As Object
+    Dim case_set As String
+    Dim row As Long, col As Long, row1 As Long, col1 As Long
+
+    Call initWSTool
+
+    Application.ScreenUpdating = False
+
+    row = 5
+    col = 11 ' Column K
+
+    ' --- Initialize ---
+    Set ws_tool = ActiveSheet
+
+    ws_tool.Range(ws_tool.Cells(row, col), ws_tool.Cells(ws_tool.Rows.Count, col)).ClearContents
+    ws_tool.Range(ws_tool.Cells(row, col + 1), ws_tool.Cells(ws_tool.Rows.Count, col + 1)).ClearContents
+    ws_tool.Range(ws_tool.Cells(row, col + 8), ws_tool.Cells(ws_tool.Rows.Count, col + 8)).ClearContents
+
+    ' --- Create FileSystemObject and get main folder ---
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    folderPath = ws_tool.Range("C1")
+
+    Set mainFolder = fso.GetFolder(folderPath)
+
+    row1 = row + ws_tool.Range("O3") - 1
+    col1 = 2 ' Column B
+
+    ' --- Loop through all subfolders ---
+    case_set = Replace(ws_tool.Cells(row1, col1).Value, "ex", "")
+
+    MsgBox case_set
+
+    For Each subFolder In mainFolder.SubFolders
+
+        If InStr(1, subFolder.Name, "rpm", vbTextCompare) > 0 Then
+
+            If InStr(1, subFolder.Name, case_set, vbTextCompare) > 0 Then
+
+                ws_tool.Cells(row, col + 0).Value = row - 4
+                ws_tool.Cells(row, col + 1).Value = subFolder.Name
+                ws_tool.Cells(row, col + 8).Value = subFolder.Path & "\results"
+
+                row = row + 1
+
+            End If
+
+        End If
+
+    Next subFolder
+
+    Application.ScreenUpdating = True
+
+End Sub
+Sub find_GID()
+
+    Dim fso As Object, folder As Object, file As Object
+    Dim row As Long, col As Long, ID As Long, row_caseset As Long
+    Dim node_id As String
+    Dim arr As Variant, arr_nodeid As Variant, arr_caseset As Variant
+    Dim i As Variant
+    Dim dof As Variant, e_nodeid As Variant, e_caseset As Variant
+
+    Call initWSTool
+
+    row = 5
+    col = 21 ' Column U
+
+    ' --- Initialize ---
+    ws_tool.Range(ws_tool.Cells(row, col), ws_tool.Cells(ws_tool.Rows.Count, col)).ClearContents
+    ws_tool.Range(ws_tool.Cells(row, col), ws_tool.Cells(ws_tool.Rows.Count, col + 1)).ClearContents
+    ws_tool.Range(ws_tool.Cells(row, col), ws_tool.Cells(ws_tool.Rows.Count, col + 77)).ClearContents
+
+    Application.ScreenUpdating = False
+
+    arr_caseset = Split(Trim(ws_tool.Range("X1")), " ")
+
+    row_caseset = row
+
+    For Each e_caseset In arr_caseset
+
+        ID = row_caseset + e_caseset - 1
+
+        ' --- Create FileSystemObject ---
+        Set fso = CreateObject("Scripting.FileSystemObject")
+
+        folderPath = ws_tool.Range("S" & ID).Value
+
+        Debug.Print folderPath
+
+        If folderPath <> "" Then
+
+            Set folder = fso.GetFolder(folderPath)
+
+        Else
+
+            MsgBox "Result is not exist! Please check case set.", vbCritical
+            Exit Sub
+
+        End If
+
+        i = Trim(ws_tool.Range("X3").Value) ' Cells DoF
+
+        arr = Split(i, " ")
+
+        arr_nodeid = Split(Trim(ws_tool.Range("X2")), " ")
+
+        ' --- Loop through all files in the folder ---
+        For Each file In folder.Files
+
+            For Each e_nodeid In arr_nodeid
+
+                For Each dof In arr
+
+                    node_id = e_nodeid & "-" & dof ' NodeID-Dof Example: 314-1
+
+                    If InStr(1, file.Name, node_id, vbTextCompare) > 0 Then
+
+                        If InStr(1, file.Name, "abs_GID", vbTextCompare) > 0 Then
+
+                            ws_tool.Cells(row, col + 0).Value = row - 4
+                            ws_tool.Cells(row, col + 1).Value = file.Name
+                            ws_tool.Cells(row, col + 5).Value = file.Path
+
+                            col_header = row
+
+                            row = row + 1
+
+                        End If
+
+                    End If
+
+                Next dof
+
+            Next e_nodeid
+
+        Next file
+
+    Next e_caseset
+
+    Application.ScreenUpdating = True
+
+End Sub
