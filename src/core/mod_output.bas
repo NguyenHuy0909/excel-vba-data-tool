@@ -14,7 +14,6 @@ Public Sub WriteDataToSheet()
     Dim rowIndex As Long, lastFileRow As Long
     Dim filePath As String
     Dim rowHeader As Long, startColumn As Long
-    Dim firstOutputColumn As Long
     Dim headerRow As Long, firstRow As Long
 
     DebugLog "Start WriteDataToSheet"
@@ -27,7 +26,6 @@ Public Sub WriteDataToSheet()
 
     Application.ScreenUpdating = False
 
-    firstOutputColumn = GetFirstOutputColumnFromDataSheet(wsData, headerRow)
     lastFileRow = wsTool.Cells(wsTool.Rows.Count, CStr(GetConfig("TOOL_GID_PATH_COL"))).End(xlUp).Row
 
     For rowIndex = firstRow To lastFileRow
@@ -53,7 +51,7 @@ Public Sub WriteDataToSheet()
     Next rowIndex
 
     RemoveDuplicateFirstOutputColumn wsData, wsTool
-    AddResultTitles wsData, wsTool, firstOutputColumn
+    WriteConfiguredGidMetadata wsData
 
     Application.ScreenUpdating = True
     wsData.Select
@@ -162,3 +160,47 @@ Private Function ExtractComponentFromPath(ByVal filePath As String) As String
         ExtractComponentFromPath = CStr(parts(LBound(parts)))
     End If
 End Function
+
+Private Sub WriteConfiguredGidMetadata(ByVal wsData As Worksheet)
+    Dim startRow As Long, labelCol As Long, valueCol As Long
+
+    startRow = GetConfigLong("DATA_META_START_ROW")
+    labelCol = GetConfigLong("DATA_META_LABEL_COL")
+    valueCol = GetConfigLong("DATA_META_VALUE_COL")
+
+    wsData.Cells(startRow + 0, labelCol).Value = "DELTA"
+    wsData.Cells(startRow + 0, valueCol).Value = GetConfig("GID_INFO_DELTA")
+
+    wsData.Cells(startRow + 1, labelCol).Value = "NodeID"
+    wsData.Cells(startRow + 1, valueCol).Value = GetConfig("GID_INFO_NODEID")
+
+    wsData.Cells(startRow + 2, labelCol).Value = "START"
+    wsData.Cells(startRow + 2, valueCol).Value = GetConfig("GID_INFO_START")
+
+    wsData.Cells(startRow + 3, labelCol).Value = "SpeedMean"
+    wsData.Cells(startRow + 3, valueCol).Value = GetConfig("GID_INFO_SPEEDMEAN")
+
+    wsData.Cells(startRow + 4, labelCol).Value = "ndS"
+    wsData.Cells(startRow + 4, valueCol).Value = GetConfig("GID_INFO_NDS")
+
+    wsData.Cells(startRow + 5, labelCol).Value = "program_name"
+    wsData.Cells(startRow + 5, valueCol).Value = GetConfig("GID_INFO_PROGRAM_NAME")
+
+    wsData.Cells(startRow + 6, labelCol).Value = "program_version"
+    wsData.Cells(startRow + 6, valueCol).Value = GetConfig("GID_INFO_PROGRAM_VERSION")
+
+    wsData.Cells(startRow + 7, labelCol).Value = "simulation_date"
+    wsData.Cells(startRow + 7, valueCol).Value = GetConfig("GID_INFO_SIMULATION_DATE")
+
+    wsData.Cells(startRow + 8, labelCol).Value = "simulation_time"
+    wsData.Cells(startRow + 8, valueCol).Value = GetConfig("GID_INFO_SIMULATION_TIME")
+
+    wsData.Cells(startRow + 9, labelCol).Value = "speed"
+    wsData.Cells(startRow + 9, valueCol).Value = GetConfig("GID_INFO_SPEED")
+
+    wsData.Cells(startRow + 10, labelCol).Value = "CHANNEL"
+    wsData.Cells(startRow + 10, valueCol).Value = GetConfig("GID_INFO_CHANNEL")
+
+    wsData.Cells(startRow + 11, labelCol).Value = "UNIT"
+    wsData.Cells(startRow + 11, valueCol).Value = GetConfig("GID_INFO_UNIT")
+End Sub

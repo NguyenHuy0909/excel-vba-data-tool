@@ -26,6 +26,7 @@ Public Sub LoadConfig(Optional ByVal forceReload As Boolean = False)
     configCache.CompareMode = vbTextCompare
 
     Set wsConfig = EnsureConfigSheet()
+    EnsureExtendedConfigKeys wsConfig
     lastRow = wsConfig.Cells(wsConfig.Rows.Count, 1).End(xlUp).Row
 
     For r = 2 To lastRow
@@ -119,10 +120,57 @@ Private Sub SeedDefaultConfig(ByVal ws As Worksheet)
     WriteConfigRow ws, 35, "TOOL_SELECTED_EX_CELL", "O3", "Selected EX index cell"
     WriteConfigRow ws, 36, "EX_EXTENSION", "ex", "Template file extension"
     WriteConfigRow ws, 37, "DATE_FORMAT", "yyyy-mm-dd hh:nn:ss", "Display format for modified date"
+
+    WriteConfigRow ws, 38, "DATA_META_START_ROW", 2, "Start row for GID metadata block on Data sheet"
+    WriteConfigRow ws, 39, "DATA_META_LABEL_COL", 1, "Column for metadata labels"
+    WriteConfigRow ws, 40, "DATA_META_VALUE_COL", 2, "Column for metadata values"
+    WriteConfigRow ws, 41, "GID_INFO_DELTA", "", "Metadata DELTA value"
+    WriteConfigRow ws, 42, "GID_INFO_NODEID", "", "Metadata NodeID value"
+    WriteConfigRow ws, 43, "GID_INFO_START", "", "Metadata START value"
+    WriteConfigRow ws, 44, "GID_INFO_SPEEDMEAN", "", "Metadata SpeedMean value"
+    WriteConfigRow ws, 45, "GID_INFO_NDS", "", "Metadata ndS value"
+    WriteConfigRow ws, 46, "GID_INFO_PROGRAM_NAME", "", "Metadata program_name value"
+    WriteConfigRow ws, 47, "GID_INFO_PROGRAM_VERSION", "", "Metadata program_version value"
+    WriteConfigRow ws, 48, "GID_INFO_SIMULATION_DATE", "", "Metadata simulation_date value"
+    WriteConfigRow ws, 49, "GID_INFO_SIMULATION_TIME", "", "Metadata simulation_time value"
+    WriteConfigRow ws, 50, "GID_INFO_SPEED", "", "Metadata speed value"
+    WriteConfigRow ws, 51, "GID_INFO_CHANNEL", "", "Metadata CHANNEL value"
+    WriteConfigRow ws, 52, "GID_INFO_UNIT", "", "Metadata UNIT value"
 End Sub
 
 Private Sub WriteConfigRow(ByVal ws As Worksheet, ByVal rowIndex As Long, ByVal keyName As String, ByVal keyValue As Variant, ByVal description As String)
     ws.Cells(rowIndex, 1).Value = keyName
     ws.Cells(rowIndex, 2).Value = keyValue
     ws.Cells(rowIndex, 3).Value = description
+End Sub
+
+
+Private Sub EnsureExtendedConfigKeys(ByVal ws As Worksheet)
+    UpsertConfigKey ws, "DATA_META_START_ROW", 2, "Start row for GID metadata block on Data sheet"
+    UpsertConfigKey ws, "DATA_META_LABEL_COL", 1, "Column for metadata labels"
+    UpsertConfigKey ws, "DATA_META_VALUE_COL", 2, "Column for metadata values"
+    UpsertConfigKey ws, "GID_INFO_DELTA", "", "Metadata DELTA value"
+    UpsertConfigKey ws, "GID_INFO_NODEID", "", "Metadata NodeID value"
+    UpsertConfigKey ws, "GID_INFO_START", "", "Metadata START value"
+    UpsertConfigKey ws, "GID_INFO_SPEEDMEAN", "", "Metadata SpeedMean value"
+    UpsertConfigKey ws, "GID_INFO_NDS", "", "Metadata ndS value"
+    UpsertConfigKey ws, "GID_INFO_PROGRAM_NAME", "", "Metadata program_name value"
+    UpsertConfigKey ws, "GID_INFO_PROGRAM_VERSION", "", "Metadata program_version value"
+    UpsertConfigKey ws, "GID_INFO_SIMULATION_DATE", "", "Metadata simulation_date value"
+    UpsertConfigKey ws, "GID_INFO_SIMULATION_TIME", "", "Metadata simulation_time value"
+    UpsertConfigKey ws, "GID_INFO_SPEED", "", "Metadata speed value"
+    UpsertConfigKey ws, "GID_INFO_CHANNEL", "", "Metadata CHANNEL value"
+    UpsertConfigKey ws, "GID_INFO_UNIT", "", "Metadata UNIT value"
+End Sub
+
+Private Sub UpsertConfigKey(ByVal ws As Worksheet, ByVal keyName As String, ByVal keyValue As Variant, ByVal description As String)
+    Dim foundCell As Range
+    Dim nextRow As Long
+
+    Set foundCell = ws.Columns(1).Find(What:=keyName, LookIn:=xlValues, LookAt:=xlWhole)
+
+    If foundCell Is Nothing Then
+        nextRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row + 1
+        WriteConfigRow ws, nextRow, keyName, keyValue, description
+    End If
 End Sub
