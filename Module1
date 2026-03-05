@@ -1,0 +1,187 @@
+Option Explicit
+
+Public arr As Variant
+
+Function FindColumnsByText(ws As Worksheet, keywords As Variant) As Variant
+
+    Dim i As Long, k As Long, lastcol As Long
+    Dim tmp() As Long, count As Long, row As String
+    
+    row = 6
+    
+    Set ws = ThisWorkbook.Sheets("Data")
+    
+    lastcol = ws.Cells(row, ws.Columns.Count).End(xlToLeft).Column
+    
+    For i = 1 To lastcol
+    
+        For k = LBound(keywords) To UBound(keywords)
+        
+            If InStr(1, ws.Cells(row, i).Value, keywords(k), vbTextCompare) > 0 Then
+            
+                count = count + 1
+                
+                ReDim Preserve tmp(1 To count)
+                
+                tmp(count) = i
+                
+            End If
+            
+        Next k
+        
+    Next i
+
+    If count > 0 Then
+        FindColumnsByText = tmp
+    Else
+        FindColumnsByText = Array()
+    End If
+
+End Function
+Function GetValuesFromRow(rowIndex As Long, colStart As Long, colEnd As Long) As Variant
+
+    Dim arr() As Variant
+    Dim i As Long
+    Dim count As Long
+    Dim ws As Worksheet
+    
+    Set ws = ThisWorkbook.Sheets("Tool")
+    
+    count = 0
+    
+    For i = colStart To colEnd
+    
+        If Not IsEmpty(ws.Cells(rowIndex, i).Value) Then
+        
+            count = count + 1
+            
+            ReDim Preserve arr(1 To count)
+            
+            arr(count) = ws.Cells(rowIndex, i).Value
+            
+        End If
+        
+    Next i
+
+    If count > 0 Then
+        GetValuesFromRow = arr
+    Else
+        GetValuesFromRow = Array()
+    End If
+
+End Function
+Sub result_filter()
+
+    Dim arr As Variant
+    Dim i As Variant
+    Dim arr_txt As Variant
+    Dim n As Long
+    
+    Dim ws As Worksheet
+    Dim ws1 As Worksheet
+    
+    Dim lastcol As Long
+    Dim keep As Boolean
+    Dim a As Long
+
+    Application.ScreenUpdating = False
+    
+    Set ws_data = ThisWorkbook.Sheets("Data")
+    Set ws1 = ThisWorkbook.Sheets("Tool")
+    
+    arr_txt = GetValuesFromRow(1, 31, 35)
+
+    For n = LBound(arr_txt) To UBound(arr_txt)
+    
+        arr = FindColumnsByText(Sheets("Data"), arr_txt)
+        
+    Next n
+
+    If IsArray(arr_txt) Then
+    
+        If UBound(arr_txt) < LBound(arr_txt) Then
+        
+            MsgBox "Check ouput!", vbCritical
+            
+            Exit Sub
+            
+        End If
+        
+    End If
+
+    lastcol = ws_data.Cells(6, ws_data.Columns.Count).End(xlToLeft).Column
+
+    For a = lastcol To 1 Step -1
+    
+        keep = False
+        
+        For i = UBound(arr) To LBound(arr) Step -1
+        
+            If a = arr(i) Then
+            
+                keep = True
+                
+                Exit For
+                
+            End If
+            
+        Next i
+        
+        If Not keep Then
+        
+            ws_data.Columns(a).Delete
+            
+        End If
+        
+    Next a
+
+    Application.ScreenUpdating = True
+
+End Sub
+Sub remove_duplicate_firstColumn()
+
+    Dim lastcol As Long
+    Dim i As Long
+    Dim headerName As String
+    
+    Dim foundFirst As Boolean
+    
+    Dim ws_data As Worksheet
+    
+    Dim arr As Variant
+    Dim arr_txt As Variant
+    Dim n As Long
+    
+    Dim keep As Boolean
+
+    Application.ScreenUpdating = False
+
+    Set ws_data = ThisWorkbook.Sheets("Data")
+
+    arr_txt = GetValuesFromRow(1, 31, 35)
+
+    For n = LBound(arr_txt) To UBound(arr_txt)
+    
+        arr = FindColumnsByText(Sheets("Data"), arr_txt)
+        
+    Next n
+
+    Set ws_data = ThisWorkbook.Sheets("Data")
+
+    headerName = arr_txt(1)
+
+    lastcol = ws_data.Cells(6, ws_data.Columns.Count).End(xlToLeft).Column
+
+    For i = lastcol To 2 Step -1
+    
+        If StrComp(ws_data.Cells(6, i).Value, headerName, vbTextCompare) = 0 Then
+        
+            ws_data.Columns(i).Delete
+            
+        End If
+        
+    Next i
+
+    Application.ScreenUpdating = True
+
+End Sub
