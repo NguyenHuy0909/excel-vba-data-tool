@@ -8,8 +8,12 @@ Option Explicit
 '=========================================
 
 Public Sub BrowseFolder()
+    On Error GoTo ERR_HANDLER
+
     Dim wsTool As Worksheet
     Dim folderPath As String
+
+    DebugLog "Start BrowseFolder"
 
     LoadConfig
     Set wsTool = GetWorksheetByConfig("TOOL_SHEET")
@@ -21,23 +25,45 @@ Public Sub BrowseFolder()
     End With
 
     wsTool.Range(CStr(GetConfig("TOOL_FOLDER_CELL"))).Value = folderPath
+    DebugLog "Selected folder: " & folderPath
+    DebugLog "End BrowseFolder"
+    Exit Sub
+
+ERR_HANDLER:
+    ErrorHandler "BrowseFolder"
 End Sub
 
 Public Sub FindExFiles()
+    On Error GoTo ERR_HANDLER
     LoadConfig
+    DebugLog "Start FindExFiles"
     FindTemplateFolders
+    DebugLog "End FindExFiles"
+    Exit Sub
+ERR_HANDLER:
+    ErrorHandler "FindExFiles"
 End Sub
 
 Public Sub FindCaseSetFolders()
+    On Error GoTo ERR_HANDLER
     LoadConfig
+    DebugLog "Start FindCaseSetFolders"
     FindCaseSets
+    DebugLog "End FindCaseSetFolders"
+    Exit Sub
+ERR_HANDLER:
+    ErrorHandler "FindCaseSetFolders"
 End Sub
 
 Public Sub FindGidFiles()
+    On Error GoTo ERR_HANDLER
+
     Dim wsTool As Worksheet
     Dim caseSetList As Variant, nodeIdList As Variant, dofList As Variant
     Dim caseSetItem As Variant
     Dim outputRow As Long
+
+    DebugLog "Start FindGidFiles"
 
     LoadConfig
     Set wsTool = GetWorksheetByConfig("TOOL_SHEET")
@@ -60,21 +86,45 @@ Public Sub FindGidFiles()
     Next caseSetItem
 
     Application.ScreenUpdating = True
+    DebugLog "End FindGidFiles"
+    Exit Sub
+
+ERR_HANDLER:
+    Application.ScreenUpdating = True
+    ErrorHandler "FindGidFiles"
 End Sub
 
 Public Sub ImportHeaderGID()
+    On Error GoTo ERR_HANDLER
     LoadConfig
+    DebugLog "Start ImportHeaderGID"
     WriteDataToSheet
+    DebugLog "End ImportHeaderGID"
+    Exit Sub
+ERR_HANDLER:
+    ErrorHandler "ImportHeaderGID"
 End Sub
 
 Public Sub ConvertMillisecondsToSeconds()
+    On Error GoTo ERR_HANDLER
     LoadConfig
+    DebugLog "Start ConvertMillisecondsToSeconds"
     ConvertUnitsToSI
+    DebugLog "End ConvertMillisecondsToSeconds"
+    Exit Sub
+ERR_HANDLER:
+    ErrorHandler "ConvertMillisecondsToSeconds"
 End Sub
 
 Public Sub ClearDataSheet()
+    On Error GoTo ERR_HANDLER
     LoadConfig
+    DebugLog "Start ClearDataSheet(UI)"
     mod_output.ClearDataSheet
+    DebugLog "End ClearDataSheet(UI)"
+    Exit Sub
+ERR_HANDLER:
+    ErrorHandler "ClearDataSheet(UI)"
 End Sub
 
 ' Backward-compatible entry points
@@ -103,6 +153,8 @@ Public Sub Clear_data()
 End Sub
 
 Private Function WriteMatchedGidFilesFromCaseSet(ByVal wsTool As Worksheet, ByVal caseSetIndexValue As Long, ByVal nodeIdList As Variant, ByVal dofList As Variant, ByVal startRow As Long) As Long
+    On Error GoTo ERR_HANDLER
+
     Dim fileSystem As Object, resultFolder As Object, folderFile As Object
     Dim folderPath As String
     Dim caseSetRow As Long
@@ -115,6 +167,9 @@ Private Function WriteMatchedGidFilesFromCaseSet(ByVal wsTool As Worksheet, ByVa
         WriteMatchedGidFilesFromCaseSet = startRow
         Exit Function
     End If
+
+    SetCurrentFileContext "", CStr(wsTool.Cells(caseSetRow, GetConfigLong("TOOL_CASE_NAME_COL")).Value)
+    DebugLog "Scanning case-set folder: " & folderPath
 
     Set fileSystem = CreateObject("Scripting.FileSystemObject")
     Set resultFolder = fileSystem.GetFolder(folderPath)
@@ -133,9 +188,15 @@ Private Function WriteMatchedGidFilesFromCaseSet(ByVal wsTool As Worksheet, ByVa
             End If
         End If
     Next folderFile
+    Exit Function
+
+ERR_HANDLER:
+    ErrorHandler "WriteMatchedGidFilesFromCaseSet"
 End Function
 
 Private Function IsGidFileMatchingNodeAndDof(ByVal fileName As String, ByVal nodeIdList As Variant, ByVal dofList As Variant) As Boolean
+    On Error GoTo ERR_HANDLER
+
     Dim nodeItem As Variant, dofItem As Variant
     Dim nodeDofKey As String
 
@@ -143,9 +204,14 @@ Private Function IsGidFileMatchingNodeAndDof(ByVal fileName As String, ByVal nod
         For Each dofItem In dofList
             nodeDofKey = CStr(nodeItem) & "-" & CStr(dofItem)
             If InStr(1, fileName, nodeDofKey, vbTextCompare) > 0 Then
+                SetCurrentFileContext fileName, CurrentRPM, CStr(nodeItem)
                 IsGidFileMatchingNodeAndDof = True
                 Exit Function
             End If
         Next dofItem
     Next nodeItem
+    Exit Function
+
+ERR_HANDLER:
+    ErrorHandler "IsGidFileMatchingNodeAndDof"
 End Function

@@ -10,9 +10,13 @@ Option Explicit
 Private configCache As Object ' Scripting.Dictionary
 
 Public Sub LoadConfig(Optional ByVal forceReload As Boolean = False)
+    On Error GoTo ERR_HANDLER
+
     Dim wsConfig As Worksheet
     Dim lastRow As Long, r As Long
     Dim keyName As String
+
+    DebugLog "Start LoadConfig"
 
     If Not forceReload Then
         If Not configCache Is Nothing Then Exit Sub
@@ -30,9 +34,17 @@ Public Sub LoadConfig(Optional ByVal forceReload As Boolean = False)
             configCache(keyName) = wsConfig.Cells(r, 2).Value
         End If
     Next r
+
+    DebugLog "End LoadConfig, keys=" & CStr(configCache.Count)
+    Exit Sub
+
+ERR_HANDLER:
+    ErrorHandler "LoadConfig"
 End Sub
 
 Public Function GetConfig(ByVal keyName As String) As Variant
+    On Error GoTo ERR_HANDLER
+
     LoadConfig
 
     If configCache.Exists(keyName) Then
@@ -40,6 +52,10 @@ Public Function GetConfig(ByVal keyName As String) As Variant
     Else
         Err.Raise vbObjectError + 513, "GetConfig", "Missing CONFIG key: " & keyName
     End If
+    Exit Function
+
+ERR_HANDLER:
+    ErrorHandler "GetConfig"
 End Function
 
 Private Function EnsureConfigSheet() As Worksheet

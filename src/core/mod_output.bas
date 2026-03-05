@@ -8,12 +8,16 @@ Option Explicit
 '=========================================
 
 Public Sub WriteDataToSheet()
+    On Error GoTo ERR_HANDLER
+
     Dim wsTool As Worksheet, wsData As Worksheet
     Dim rowIndex As Long, lastFileRow As Long
     Dim filePath As String
     Dim rowHeader As Long, startColumn As Long
     Dim firstOutputColumn As Long
     Dim headerRow As Long, firstRow As Long
+
+    DebugLog "Start WriteDataToSheet"
 
     Set wsTool = GetWorksheetByConfig("TOOL_SHEET")
     Set wsData = GetWorksheetByConfig("DATA_SHEET")
@@ -28,6 +32,8 @@ Public Sub WriteDataToSheet()
 
     For rowIndex = firstRow To lastFileRow
         filePath = CStr(wsTool.Range(CStr(GetConfig("TOOL_GID_PATH_COL")) & rowIndex).Value)
+        SetCurrentFileContext filePath, ExtractRpmFromPath(filePath), CurrentNode, ExtractComponentFromPath(filePath)
+        DebugLog "Processing GID file: " & filePath
 
         If Not GetFileExistsFromPath(filePath) Then
             MsgBox "Not found *.GID file path. Please check Load Folder Path", vbCritical
@@ -41,6 +47,7 @@ Public Sub WriteDataToSheet()
         ReadGIDHeader filePath, wsData, startColumn, rowHeader
         ReadGIDData filePath, wsData, startColumn, rowHeader
 
+        DebugLog "Applying result filters"
         FilterResultColumns wsData, wsTool
         FilterResultColumns wsData, wsTool
     Next rowIndex
@@ -50,14 +57,24 @@ Public Sub WriteDataToSheet()
 
     Application.ScreenUpdating = True
     wsData.Select
+    DebugLog "End WriteDataToSheet"
+    Exit Sub
+
+ERR_HANDLER:
+    Application.ScreenUpdating = True
+    ErrorHandler "WriteDataToSheet"
 End Sub
 
 Public Sub ConvertUnitsToSI()
+    On Error GoTo ERR_HANDLER
+
     Dim wsData As Worksheet
     Dim lastColumn As Long, lastRow As Long
     Dim dataRange As Range, unitRange As Range
     Dim factor As Double
     Dim startRow As Long
+
+    DebugLog "Start ConvertUnitsToSI"
 
     Set wsData = GetWorksheetByConfig("DATA_SHEET")
     startRow = GetConfigLong("DATA_START_ROW")
@@ -73,15 +90,31 @@ Public Sub ConvertUnitsToSI()
     unitRange.Replace What:="mm/s^2", Replacement:="[m/s^2]", LookAt:=xlPart
 
     wsData.Select
+    DebugLog "End ConvertUnitsToSI"
+    Exit Sub
+
+ERR_HANDLER:
+    ErrorHandler "ConvertUnitsToSI"
 End Sub
 
 Public Sub ClearDataSheet()
+    On Error GoTo ERR_HANDLER
+
     Dim wsData As Worksheet
+    DebugLog "Start ClearDataSheet"
+
     Set wsData = GetWorksheetByConfig("DATA_SHEET")
 
     Application.ScreenUpdating = False
     wsData.Cells.ClearContents
     Application.ScreenUpdating = True
+
+    DebugLog "End ClearDataSheet"
+    Exit Sub
+
+ERR_HANDLER:
+    Application.ScreenUpdating = True
+    ErrorHandler "ClearDataSheet"
 End Sub
 
 Private Function GetFirstOutputColumnFromDataSheet(ByVal wsData As Worksheet, ByVal headerRow As Long) As Long
@@ -104,5 +137,28 @@ Private Function GetNextHeaderColumnFromDataSheet(ByVal wsData As Worksheet, ByV
         GetNextHeaderColumnFromDataSheet = 1
     Else
         GetNextHeaderColumnFromDataSheet = lastColumn + 1
+    End If
+End Function
+
+Private Function ExtractRpmFromPath(ByVal filePath As String) As String
+    Dim parts As Variant
+    Dim i As Long
+    parts = Split(filePath, "\")
+    For i = LBound(parts) To UBound(parts)
+        If InStr(1, CStr(parts(i)), CStr(GetConfig("RPM_FOLDER_PATTERN")), vbTextCompare) > 0 Then
+            ExtractRpmFromPath = CStr(parts(i))
+            Exit Function
+        End If
+    Next i
+End Function
+
+Private Function ExtractComponentFromPath(ByVal filePath As String) As String
+    Dim fileName As String
+    Dim parts As Variant
+
+    fileName = Mid$(filePath, InStrRev(filePath, "\") + 1)
+    parts = Split(fileName, "-")
+    If UBound(parts) >= LBound(parts) Then
+        ExtractComponentFromPath = CStr(parts(LBound(parts)))
     End If
 End Function

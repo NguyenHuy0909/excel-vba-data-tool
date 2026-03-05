@@ -8,15 +8,23 @@ Option Explicit
 '=========================================
 
 Public Function GetSelectedOutputsFromToolSheet(ByVal wsTool As Worksheet) As Variant
+    On Error GoTo ERR_HANDLER
     GetSelectedOutputsFromToolSheet = GetValuesFromRange(wsTool, CStr(GetConfig("TOOL_OUTPUT_RANGE")))
+    Exit Function
+ERR_HANDLER:
+    ErrorHandler "GetSelectedOutputsFromToolSheet"
 End Function
 
 Public Sub FilterResultColumns(ByVal wsData As Worksheet, ByVal wsTool As Worksheet)
+    On Error GoTo ERR_HANDLER
+
     Dim selectedOutputs As Variant
     Dim keepColumns As Variant
     Dim lastColumn As Long
     Dim currentColumn As Long
     Dim headerRow As Long
+
+    DebugLog "Start FilterResultColumns"
 
     headerRow = GetConfigLong("HEADER_ROW")
     selectedOutputs = GetSelectedOutputsFromToolSheet(wsTool)
@@ -34,14 +42,24 @@ Public Sub FilterResultColumns(ByVal wsData As Worksheet, ByVal wsTool As Worksh
     For currentColumn = lastColumn To 1 Step -1
         If Not IsColumnInList(currentColumn, keepColumns) Then wsData.Columns(currentColumn).Delete
     Next currentColumn
+
+    DebugLog "End FilterResultColumns"
+    Exit Sub
+
+ERR_HANDLER:
+    ErrorHandler "FilterResultColumns"
 End Sub
 
 Public Sub RemoveDuplicateFirstOutputColumn(ByVal wsData As Worksheet, ByVal wsTool As Worksheet)
+    On Error GoTo ERR_HANDLER
+
     Dim selectedOutputs As Variant
     Dim lastColumn As Long
     Dim currentColumn As Long
     Dim firstOutputName As String
     Dim headerRow As Long
+
+    DebugLog "Start RemoveDuplicateFirstOutputColumn"
 
     headerRow = GetConfigLong("HEADER_ROW")
     selectedOutputs = GetSelectedOutputsFromToolSheet(wsTool)
@@ -55,9 +73,17 @@ Public Sub RemoveDuplicateFirstOutputColumn(ByVal wsData As Worksheet, ByVal wsT
             wsData.Columns(currentColumn).Delete
         End If
     Next currentColumn
+
+    DebugLog "End RemoveDuplicateFirstOutputColumn"
+    Exit Sub
+
+ERR_HANDLER:
+    ErrorHandler "RemoveDuplicateFirstOutputColumn"
 End Sub
 
 Public Sub AddResultTitles(ByVal wsData As Worksheet, ByVal wsTool As Worksheet, ByVal firstOutputColumn As Long)
+    On Error GoTo ERR_HANDLER
+
     Dim nodeIdItems As Variant, dofItems As Variant, caseSetItems As Variant, outputItems As Variant
     Dim folderPathParts As Variant, modeNameParts As Variant
     Dim resultFolderPath As String, modeName As String, rpmName As String
@@ -66,6 +92,8 @@ Public Sub AddResultTitles(ByVal wsData As Worksheet, ByVal wsTool As Worksheet,
     Dim outputCount As Long, dofCount As Long
     Dim outputColumn As Long, nodeTitleColumn As Long, modelTitleColumn As Long
     Dim caseCol As String
+
+    DebugLog "Start AddResultTitles"
 
     caseSetItems = ParseInputTokens(CStr(wsTool.Range(CStr(GetConfig("TOOL_CASESET_INPUT"))).Value))
     nodeIdItems = ParseInputTokens(CStr(wsTool.Range(CStr(GetConfig("TOOL_NODE_INPUT"))).Value))
@@ -121,4 +149,10 @@ Public Sub AddResultTitles(ByVal wsData As Worksheet, ByVal wsTool As Worksheet,
 
         modelTitleColumn = outputColumn
     Next caseItem
+
+    DebugLog "End AddResultTitles"
+    Exit Sub
+
+ERR_HANDLER:
+    ErrorHandler "AddResultTitles"
 End Sub
